@@ -1,14 +1,14 @@
 import type { LedgerStore } from '@vantrace/core';
 
 type TextContent = { type: 'text'; text: string };
-type ToolResult = { content: [TextContent] };
+type ToolResult = { content: TextContent[]; isError?: boolean };
 
 function ok(data: unknown): ToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
 }
 
 function err(msg: string): ToolResult {
-  return { content: [{ type: 'text', text: msg }] };
+  return { content: [{ type: 'text', text: msg }], isError: true };
 }
 
 export function makeListSessionsHandler(store: LedgerStore) {
@@ -28,6 +28,7 @@ export function makeGetSessionHandler(store: LedgerStore) {
 
 export function makeGetEventsHandler(store: LedgerStore) {
   return async ({ session_id }: { session_id: string }): Promise<ToolResult> => {
+    if (!store.getSession(session_id)) return err(`Session '${session_id}' not found`);
     const events = store.getEvents(session_id);
     return ok(events);
   };

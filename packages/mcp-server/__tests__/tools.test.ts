@@ -103,10 +103,10 @@ describe('makeGetEventsHandler', () => {
     expect(parsed[0].action_type).toBe('file_read');
   });
 
-  it('returns empty array for unknown session_id', async () => {
+  it('returns error text for unknown session_id', async () => {
     const handler = makeGetEventsHandler(store);
     const result = await handler({ session_id: 'ghost' });
-    const parsed = JSON.parse(result.content[0]!.text);
-    expect(parsed).toEqual([]);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain('not found');
   });
 });
