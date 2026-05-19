@@ -83,7 +83,7 @@ describe('LedgerStore', () => {
       store.createSession({ agent: 'claude-code', cwd: '/b' });
       const sessions = store.listSessions();
       expect(sessions).toHaveLength(2);
-      expect(sessions[0]?.started_at >= (sessions[1]?.started_at ?? '')).toBe(true);
+      expect((sessions[0]?.started_at ?? '') >= (sessions[1]?.started_at ?? '')).toBe(true);
     });
   });
 
