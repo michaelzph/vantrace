@@ -1,5 +1,7 @@
 import type { ActionType } from '@vantrace/core';
 
+const BASH_COMMAND_MAX_CHARS = 500;
+
 export interface MappedAction {
   action_type: ActionType;
   action_data: Record<string, unknown>;
@@ -52,7 +54,7 @@ export function mapTool(
       return {
         action_type: 'bash_execute',
         action_data: {
-          command: typeof cmd === 'string' ? cmd.slice(0, 500) : null,
+          command: typeof cmd === 'string' ? cmd.slice(0, BASH_COMMAND_MAX_CHARS) : null,
         },
       };
     }
