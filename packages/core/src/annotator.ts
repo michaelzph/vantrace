@@ -47,13 +47,13 @@ export function annotate(
       const command = typeof action_data['command'] === 'string'
         ? action_data['command'].trim().toLowerCase()
         : '';
-      if (DESTRUCTIVE_PREFIXES.some(p => command.startsWith(p))) {
+      if (DESTRUCTIVE_PREFIXES.some(p => command.startsWith(p + ' ') || command === p)) {
         return { reversible: 0, risk_level: 'high' };
       }
-      if (SAFE_PREFIXES.some(p => command.startsWith(p))) {
+      if (SAFE_PREFIXES.some(p => command.startsWith(p + ' ') || command === p)) {
         return { reversible: 1, risk_level: 'low' };
       }
-      if (STATE_CHANGE_PREFIXES.some(p => command.startsWith(p))) {
+      if (STATE_CHANGE_PREFIXES.some(p => command.startsWith(p + ' ') || command === p)) {
         return { reversible: 0, risk_level: 'medium' };
       }
       return { reversible: null, risk_level: 'medium' };
