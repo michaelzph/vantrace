@@ -58,5 +58,8 @@ export function annotate(
       }
       return { reversible: null, risk_level: 'medium' };
     }
+
+    case 'correction':
+      return { reversible: 1, risk_level: 'low' };
   }
 }

@@ -156,4 +156,49 @@ describe('PostToolUse handling', () => {
       )
     ).not.toThrow();
   });
+
+  it('records bash result_data with stdout_lines from tool_response', () => {
+    const store = new LedgerStore(':memory:');
+    const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+    processHookPayload(
+      { session_id: session.id, tool_name: 'Bash', tool_input: { command: 'ls' }, cwd: '/tmp' },
+      store
+    );
+    const events = store.getEvents(session.id);
+
+    processHookPayload(
+      {
+        session_id: session.id, tool_name: 'Bash', tool_input: { command: 'ls' }, cwd: '/tmp',
+        tool_response: { output: 'file1.txt\nfile2.txt\nfile3.txt' },
+      },
+      store
+    );
+
+    const completions = store.getCompletions(session.id);
+    const c = completions.get(events[0]!.id)!;
+    expect(c.outcome).toBe('success');
+    expect((c.result_data as { stdout_lines: number }).stdout_lines).toBe(3);
+  });
+
+  it('records file_read result_data with size_bytes when available', () => {
+    const store = new LedgerStore(':memory:');
+    const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+    processHookPayload(
+      { session_id: session.id, tool_name: 'Read', tool_input: { file_path: '/tmp/x' }, cwd: '/tmp' },
+      store
+    );
+    const events = store.getEvents(session.id);
+
+    processHookPayload(
+      {
+        session_id: session.id, tool_name: 'Read', tool_input: { file_path: '/tmp/x' }, cwd: '/tmp',
+        tool_response: { content: 'hello world', size: 11 },
+      },
+      store
+    );
+
+    const completions = store.getCompletions(session.id);
+    const c = completions.get(events[0]!.id)!;
+    expect((c.result_data as { size_bytes: number | null }).size_bytes).toBe(11);
+  });
 });
