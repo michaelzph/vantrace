@@ -16,14 +16,13 @@ function getDbPath(): string {
 }
 
 async function main(): Promise<void> {
-  const dbPath = getDbPath();
-  mkdirSync(dirname(dbPath), { recursive: true });
-
   let store: LedgerStore;
   try {
+    const dbPath = getDbPath();
+    mkdirSync(dirname(dbPath), { recursive: true });
     store = new LedgerStore(dbPath);
   } catch (e) {
-    console.error('vantrace-mcp: failed to open database:', e instanceof Error ? e.message : e);
+    console.error('vantrace-mcp: failed to initialize:', e instanceof Error ? e.message : e);
     process.exit(1);
     return;
   }
