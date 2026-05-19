@@ -30,6 +30,12 @@ export function makeGetEventsHandler(store: LedgerStore) {
   return async ({ session_id }: { session_id: string }): Promise<ToolResult> => {
     if (!store.getSession(session_id)) return err(`Session '${session_id}' not found`);
     const events = store.getEvents(session_id);
-    return ok(events);
+    const completions = store.getCompletions(session_id);
+    const enriched = events.map(e => ({
+      ...e,
+      outcome: completions.get(e.id)?.outcome ?? null,
+      error_msg: completions.get(e.id)?.error_msg ?? null,
+    }));
+    return ok(enriched);
   };
 }
