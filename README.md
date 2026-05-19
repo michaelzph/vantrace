@@ -2,7 +2,9 @@
 
 > See every move your AI agent makes, from a vantage point.
 
-Vantrace is an open-source audit framework for AI agents. It captures every action Claude Code takes — file reads, writes, bash commands, web searches — as structured, immutable records in a local SQLite database. When something goes wrong, you can trace exactly what happened.
+Vantrace is an open-source audit framework for AI agents. It captures every action an AI agent takes — file reads, writes, bash commands, web searches — as structured, immutable records in a local SQLite database. When something goes wrong, you can trace exactly what happened.
+
+Currently supports **Claude Code**, with more integrations on the roadmap (Hermes, OpenClaw, and others).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
@@ -17,7 +19,7 @@ AI agent frameworks are black boxes. When an agent deletes a file, runs an unexp
 - **Immutable log** — events are append-only; nothing is ever updated or deleted
 - **Local-first** — all data lives on your machine; nothing is sent anywhere
 - **Structured** — every action is typed, risk-classified, and reversibility-annotated
-- **Passive** — hooks into Claude Code transparently; zero workflow change
+- **Passive** — hooks into your agent framework transparently; zero workflow change
 
 ---
 
@@ -54,9 +56,9 @@ pnpm build
 
 This creates `.claude/settings.json` in your project with the correct hook configuration, and installs `vantrace` as a global command.
 
-**3. Use Claude Code normally**
+**3. Use your agent normally**
 
-Start a Claude Code session. Vantrace captures events in the background — no change to your workflow.
+Start a Claude Code session (or any supported agent). Vantrace captures events in the background — no change to your workflow.
 
 **4. View what happened**
 
