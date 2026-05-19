@@ -15,8 +15,8 @@ export function mapTool(
       action_type: 'mcp_tool_call',
       action_data: {
         tool: tool_name,
-        server: parts[1] || 'unknown',
-        operation: parts[2] || 'unknown',
+        server: parts[1] ?? 'unknown',
+        input_keys: Object.keys(tool_input),
       },
     };
   }
@@ -29,17 +29,22 @@ export function mapTool(
       };
 
     case 'Write':
+      return {
+        action_type: 'file_write',
+        action_data: { path: tool_input['file_path'] ?? null, operation: 'create' },
+      };
+
     case 'Edit':
     case 'MultiEdit':
       return {
         action_type: 'file_write',
-        action_data: { path: tool_input['file_path'] ?? null },
+        action_data: { path: tool_input['file_path'] ?? null, operation: 'patch' },
       };
 
     case 'NotebookEdit':
       return {
         action_type: 'file_write',
-        action_data: { path: tool_input['notebook_path'] ?? null },
+        action_data: { path: tool_input['notebook_path'] ?? null, operation: 'patch' },
       };
 
     case 'Bash': {
@@ -68,13 +73,13 @@ export function mapTool(
     case 'ThinkingTool':
       return {
         action_type: 'agent_thinking',
-        action_data: {},
+        action_data: { phase: null, decision: null, alternatives: [], confidence: null },
       };
 
     default:
       return {
         action_type: 'mcp_tool_call',
-        action_data: { tool: tool_name },
+        action_data: { tool: tool_name, server: 'unknown', input_keys: Object.keys(tool_input) },
       };
   }
 }
