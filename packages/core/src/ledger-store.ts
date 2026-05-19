@@ -152,6 +152,22 @@ function rowToSession(row: Record<string, unknown>): Session {
 }
 
 function rowToEvent(row: Record<string, unknown>): Event {
+  let action_data: Record<string, unknown> = {};
+  try {
+    action_data = JSON.parse(row['action_data'] as string);
+  } catch {
+    // Fallback to empty object if JSON parse fails
+  }
+
+  let policy_tags: string[] | null = null;
+  if (row['policy_tags']) {
+    try {
+      policy_tags = JSON.parse(row['policy_tags'] as string);
+    } catch {
+      // Fallback to null if JSON parse fails
+    }
+  }
+
   return {
     id: row['id'] as string,
     session_id: row['session_id'] as string,
@@ -160,13 +176,11 @@ function rowToEvent(row: Record<string, unknown>): Event {
     agent: row['agent'] as string,
     agent_ver: (row['agent_ver'] as string | null) ?? null,
     action_type: row['action_type'] as Event['action_type'],
-    action_data: JSON.parse(row['action_data'] as string) as Record<string, unknown>,
+    action_data,
     reversible: (row['reversible'] as 0 | 1 | null) ?? null,
     risk_level: (row['risk_level'] as Event['risk_level']) ?? null,
     parent_id: (row['parent_id'] as string | null) ?? null,
-    policy_tags: row['policy_tags']
-      ? (JSON.parse(row['policy_tags'] as string) as string[])
-      : null,
+    policy_tags,
     policy_result: (row['policy_result'] as string | null) ?? null,
   };
 }
