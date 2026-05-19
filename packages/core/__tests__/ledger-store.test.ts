@@ -102,4 +102,27 @@ describe('LedgerStore', () => {
       expect(store.getEvents('nonexistent')).toEqual([]);
     });
   });
+
+  describe('getOrCreateSession', () => {
+    it('creates a session when id does not exist', () => {
+      const session = store.getOrCreateSession('ext-123', { agent: 'claude-code', cwd: '/tmp' });
+      expect(session.id).toBe('ext-123');
+      expect(session.agent).toBe('claude-code');
+      expect(session.status).toBe('active');
+    });
+
+    it('returns existing session without creating a duplicate', () => {
+      store.getOrCreateSession('ext-456', { agent: 'claude-code', cwd: '/tmp' });
+      store.getOrCreateSession('ext-456', { agent: 'claude-code', cwd: '/tmp' });
+      const all = store.listSessions().filter(s => s.id === 'ext-456');
+      expect(all).toHaveLength(1);
+    });
+
+    it('returns the existing session on second call (cwd not overwritten)', () => {
+      const first = store.getOrCreateSession('ext-789', { agent: 'claude-code', cwd: '/a' });
+      const second = store.getOrCreateSession('ext-789', { agent: 'claude-code', cwd: '/b' });
+      expect(second.id).toBe('ext-789');
+      expect(second.cwd).toBe('/a');
+    });
+  });
 });

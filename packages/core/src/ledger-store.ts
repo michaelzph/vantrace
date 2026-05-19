@@ -79,6 +79,27 @@ export class LedgerStore {
     return row ? rowToSession(row) : undefined;
   }
 
+  getOrCreateSession(id: string, input: CreateSessionInput): Session {
+    const existing = this.getSession(id);
+    if (existing) return existing;
+    const session: Session = {
+      id,
+      started_at: new Date().toISOString(),
+      ended_at: null,
+      agent: input.agent,
+      task: input.task ?? null,
+      cwd: input.cwd,
+      status: 'active',
+    };
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO sessions (id, started_at, ended_at, agent, task, cwd, status)
+         VALUES (@id, @started_at, @ended_at, @agent, @task, @cwd, @status)`
+      )
+      .run(session);
+    return this.getSession(id)!;
+  }
+
   listSessions(): Session[] {
     const rows = this.db
       .prepare(`SELECT * FROM sessions ORDER BY started_at DESC`)
