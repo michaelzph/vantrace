@@ -8,8 +8,7 @@
 
 ## Current Focus
 
-Implementing `@glassbox/collector-claude-code` — the Claude Code
-hooks integration that captures tool invocations into the Ledger.
+Implementing `@glassbox/cli` — session inspection commands.
 
 ---
 
@@ -23,19 +22,14 @@ hooks integration that captures tool invocations into the Ledger.
 - [x] `@glassbox/core` — schema.ts (TypeScript types)
 - [x] `@glassbox/core` — ledger-store.ts (SQLite CRUD, append-only)
 - [x] `@glassbox/core` — annotator.ts (reversibility classification)
+- [x] `@glassbox/collector-claude-code` — hooks integration
+  - [x] PreToolUse hook: capture tool name + input metadata
+  - [x] PostToolUse hook: exit 0 silently (capture deferred to v2)
+  - [x] Tool name → action_type mapping (Read/Write/Edit/MultiEdit/NotebookEdit/Bash/WebSearch/WebFetch/MCP)
 
 ---
 
 ## In Progress
-
-- [ ] `@glassbox/collector-claude-code` — hooks integration
-  - PreToolUse hook: capture tool name + input metadata
-  - PostToolUse hook: capture exit status and output metadata
-  - Tool name → action_type mapping (Read/Write/Bash/WebSearch/MCP)
-
----
-
-## Up Next
 
 - [ ] `@glassbox/cli` — `glassbox sessions` command
 - [ ] `@glassbox/cli` — `glassbox session <id>` command
@@ -55,6 +49,8 @@ hooks integration that captures tool invocations into the Ledger.
 
 ## Known Issues / Open Questions
 
+- PostToolUse capture is not implemented (deferred to v2). Only PreToolUse events are recorded.
+  Failed tool calls still appear as events in the Ledger.
 - Claude Code hooks API has no stability guarantee from Anthropic.
   The collector parser must be kept thin so updates only require
   changing the parser, not core.
