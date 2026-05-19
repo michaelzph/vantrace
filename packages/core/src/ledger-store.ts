@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE TABLE IF NOT EXISTS completions (
   event_id    TEXT PRIMARY KEY REFERENCES events(id),
-  outcome     TEXT NOT NULL,
+  outcome     TEXT NOT NULL CHECK (outcome IN ('success', 'error')),
   error_msg   TEXT,
   created_at  TEXT NOT NULL
 );
@@ -162,7 +162,7 @@ export class LedgerStore {
       .prepare(
         `SELECT * FROM events
          WHERE session_id = ? AND action_type = ?
-           AND id NOT IN (SELECT event_id FROM completions)
+           AND NOT EXISTS (SELECT 1 FROM completions WHERE completions.event_id = events.id)
          ORDER BY seq DESC LIMIT 1`
       )
       .get(session_id, action_type) as Record<string, unknown> | undefined;

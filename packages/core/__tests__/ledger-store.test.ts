@@ -177,11 +177,13 @@ describe('LedgerStore', () => {
         expect(c?.created_at).toBeTruthy();
       });
 
-      it('is idempotent — duplicate recordCompletion does not throw', () => {
+      it('is idempotent — first-write wins, no throw on duplicate', () => {
         const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
         const e = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
         store.recordCompletion({ event_id: e.id, outcome: 'success' });
-        expect(() => store.recordCompletion({ event_id: e.id, outcome: 'success' })).not.toThrow();
+        expect(() => store.recordCompletion({ event_id: e.id, outcome: 'error' })).not.toThrow();
+        // First write wins — outcome must still be 'success'
+        expect(store.getCompletions(session.id).get(e.id)?.outcome).toBe('success');
       });
     });
 
@@ -203,6 +205,14 @@ describe('LedgerStore', () => {
         expect(map.size).toBe(2);
         expect(map.get(e1.id)?.outcome).toBe('success');
         expect(map.get(e2.id)?.error_msg).toBe('permission denied');
+      });
+
+      it('does not return completions from other sessions', () => {
+        const s1 = store.createSession({ agent: 'claude-code', cwd: '/a' });
+        const s2 = store.createSession({ agent: 'claude-code', cwd: '/b' });
+        const e = store.appendEvent({ session_id: s1.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
+        store.recordCompletion({ event_id: e.id, outcome: 'success' });
+        expect(store.getCompletions(s2.id).size).toBe(0);
       });
     });
   });
