@@ -15,32 +15,53 @@ function getDbPath(): string {
   return process.env['VANTRACE_DB'] ?? join(homedir(), '.vantrace', 'vantrace.db');
 }
 
-const dbPath = getDbPath();
-mkdirSync(dirname(dbPath), { recursive: true });
-const store = new LedgerStore(dbPath);
+async function main(): Promise<void> {
+  const dbPath = getDbPath();
+  mkdirSync(dirname(dbPath), { recursive: true });
 
-const server = new McpServer({ name: 'vantrace', version: '0.1.0' });
+  let store: LedgerStore;
+  try {
+    store = new LedgerStore(dbPath);
+  } catch (e) {
+    console.error('vantrace-mcp: failed to open database:', e instanceof Error ? e.message : e);
+    process.exit(1);
+    return;
+  }
 
-server.tool(
-  'list_sessions',
-  'List recent Vantrace audit sessions. Returns sessions in descending order by start time.',
-  { limit: z.number().int().positive().optional().describe('Max sessions to return (default 20)') },
-  makeListSessionsHandler(store)
-);
+  process.on('SIGINT', () => { store.close(); process.exit(0); });
+  process.on('SIGTERM', () => { store.close(); process.exit(0); });
 
-server.tool(
-  'get_session',
-  'Get metadata for a specific Vantrace session by ID.',
-  { session_id: z.string().describe('The session ID') },
-  makeGetSessionHandler(store)
-);
+  const server = new McpServer({ name: 'vantrace', version: '0.1.0' });
 
-server.tool(
-  'get_events',
-  'Get all recorded tool-call events for a Vantrace session.',
-  { session_id: z.string().describe('The session ID') },
-  makeGetEventsHandler(store)
-);
+  server.tool(
+    'list_sessions',
+    'List recent Vantrace audit sessions. Returns sessions in descending order by start time.',
+    { limit: z.number().int().positive().optional().describe('Max sessions to return (default 20)') },
+    makeListSessionsHandler(store)
+  );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+  server.tool(
+    'get_session',
+    'Get metadata for a specific Vantrace session by ID.',
+    { session_id: z.string().describe('The session ID') },
+    makeGetSessionHandler(store)
+  );
+
+  server.tool(
+    'get_events',
+    'Get all recorded tool-call events for a Vantrace session.',
+    { session_id: z.string().describe('The session ID') },
+    makeGetEventsHandler(store)
+  );
+
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  } catch (e) {
+    console.error('vantrace-mcp: failed to start server:', e instanceof Error ? e.message : e);
+    store.close();
+    process.exit(1);
+  }
+}
+
+main();
