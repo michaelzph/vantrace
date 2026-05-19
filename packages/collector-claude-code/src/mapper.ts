@@ -1,4 +1,4 @@
-import type { ActionType } from '@glassbox/core';
+import type { ActionType } from '@vantrace/core';
 
 export interface MappedAction {
   action_type: ActionType;

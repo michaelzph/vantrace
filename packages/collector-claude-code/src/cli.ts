@@ -1,12 +1,12 @@
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { LedgerStore } from '@glassbox/core';
+import { LedgerStore } from '@vantrace/core';
 import { processHookPayload } from './handler.js';
 import type { HookPayload } from './handler.js';
 
 function getDbPath(): string {
-  return process.env['GLASSBOX_DB'] ?? join(homedir(), '.glassbox', 'glassbox.db');
+  return process.env['VANTRACE_DB'] ?? join(homedir(), '.vantrace', 'vantrace.db');
 }
 
 async function main(): Promise<void> {

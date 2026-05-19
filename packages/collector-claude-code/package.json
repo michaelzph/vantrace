@@ -1,10 +1,10 @@
 {
-  "name": "@glassbox/collector-claude-code",
+  "name": "@vantrace/collector-claude-code",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "glassbox-hook": "./dist/cli.js"
+    "vantrace-hook": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,6 +20,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@glassbox/core": "workspace:*"
+    "@vantrace/core": "workspace:*"
   }
 }

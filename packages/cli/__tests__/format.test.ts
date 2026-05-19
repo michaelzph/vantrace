@@ -36,10 +36,16 @@ describe('formatActionData', () => {
     expect(result).toContain('cwd: /tmp');
   });
 
-  it('truncates very long values to 60 chars', () => {
+  it('truncates result to maxWidth', () => {
     const long = 'x'.repeat(100);
-    const result = formatActionData({ key: long });
-    expect(result.length).toBeLessThanOrEqual('key: '.length + 60);
+    const result = formatActionData({ key: long }, 80);
+    expect(result.length).toBeLessThanOrEqual(80);
+  });
+
+  it('replaces newlines with spaces', () => {
+    const result = formatActionData({ command: 'line1\nline2\nline3' });
+    expect(result).not.toContain('\n');
+    expect(result).toContain('line1 line2 line3');
   });
 });
 

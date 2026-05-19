@@ -8,9 +8,8 @@
 
 ## Current Focus
 
-Initializing the monorepo and implementing `@vantrace/core` —
-the LedgerStore (SQLite), event schema types, and reversibility
-annotator.
+Glassbox MVP is complete. All four packages are implemented and
+wired together end-to-end. Next focus: policy engine (v2).
 
 ---
 
@@ -20,29 +19,31 @@ annotator.
 - [x] Architecture design (five-module monorepo)
 - [x] Event schema design (events + sessions tables)
 - [x] CLAUDE.md and STATUS.md created
+- [x] Monorepo scaffold (pnpm workspace, tsconfig, root package.json)
+- [x] `@vantrace/core` — schema.ts (TypeScript types)
+- [x] `@vantrace/core` — ledger-store.ts (SQLite, append-only)
+- [x] `@vantrace/core` — annotator.ts (reversibility classification)
+- [x] `@vantrace/core` — completions table (findLastUncompletedEvent, recordCompletion, getCompletions)
+- [x] `@vantrace/collector-claude-code` — PreToolUse hook: captures tool name + input metadata
 - [x] `@vantrace/collector-claude-code` — PostToolUse hook: records success/error outcome per event
-- [x] `@vantrace/cli` — session detail shows OUT column (ok/err/?)
-- [x] `@vantrace/mcp-server` — get_events includes outcome and error_msg per event
+- [x] `@vantrace/collector-claude-code` — tool name → action_type mapping
+- [x] `@vantrace/cli` — `vantrace sessions` command
+- [x] `@vantrace/cli` — `vantrace session <id>` command with OUT column (ok/err/?)
+- [x] `@vantrace/mcp-server` — list_sessions, get_session, get_events (includes outcome + error_msg)
+- [x] MCP server wired into Claude Code project settings
 
 ---
 
 ## In Progress
 
-- [ ] Monorepo scaffold (pnpm workspace, tsconfig, root package.json)
-- [ ] `@vantrace/core` — schema.ts (TypeScript types)
-- [ ] `@vantrace/core` — ledger-store.ts (SQLite, append-only)
-- [ ] `@vantrace/core` — annotator.ts (reversibility classification)
+_(nothing — MVP is complete)_
 
 ---
 
 ## Up Next
 
-- [ ] `@vantrace/collector-claude-code` — hooks integration
-  - PreToolUse hook: capture tool name + input metadata
-  - PostToolUse hook: capture exit status and output metadata
-  - Tool name → action_type mapping (Read/Write/Bash/WebSearch/MCP)
-- [ ] `@vantrace/cli` — `vantrace sessions` command
-- [ ] `@vantrace/cli` — `vantrace session <id>` command
+- [ ] Policy engine — YAML rules, block/warn/log modes
+- [ ] Causal chain analysis — parent_id graph traversal
 
 ---
 

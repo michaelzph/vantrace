@@ -9,12 +9,14 @@ export function revStr(reversible: 0 | 1 | null): string {
   return '?';
 }
 
-export function formatActionData(data: Record<string, unknown>): string {
+export function formatActionData(data: Record<string, unknown>, maxWidth = 80): string {
   const entries = Object.entries(data);
   if (entries.length === 0) return '';
-  return entries
-    .map(([k, v]) => `${k}: ${String(v ?? '').slice(0, 60)}`)
+  const str = entries
+    .map(([k, v]) => `${k}: ${String(v ?? '').replace(/\n/g, ' ')}`)
     .join(', ');
+  if (str.length <= maxWidth) return str;
+  return str.slice(0, maxWidth - 1) + '…';
 }
 
 export function formatDate(iso: string): string {

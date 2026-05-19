@@ -1,10 +1,10 @@
 # Setting Up Claude Code Hooks
 
-After building Glassbox, wire the hook binary into your Claude Code project.
+After building Vantrace, wire the hook binary into your Claude Code project.
 
 ## 1. Build the hook binary
 
-From the glassbox repo root:
+From the vantrace repo root:
 
 ```bash
 pnpm build
@@ -23,7 +23,8 @@ Create or edit `.claude/settings.json` in the project you want to audit:
         "hooks": [
           {
             "type": "command",
-            "command": "node /absolute/path/to/glassbox/packages/collector-claude-code/dist/cli.js"
+            "command": "node",
+            "args": ["/absolute/path/to/vantrace/packages/collector-claude-code/dist/cli.js"]
           }
         ]
       }
@@ -34,7 +35,8 @@ Create or edit `.claude/settings.json` in the project you want to audit:
         "hooks": [
           {
             "type": "command",
-            "command": "node /absolute/path/to/glassbox/packages/collector-claude-code/dist/cli.js"
+            "command": "node",
+            "args": ["/absolute/path/to/vantrace/packages/collector-claude-code/dist/cli.js"]
           }
         ]
       }
@@ -43,7 +45,7 @@ Create or edit `.claude/settings.json` in the project you want to audit:
 }
 ```
 
-Replace `/absolute/path/to/glassbox` with the actual path to your glassbox repo.
+Replace `/absolute/path/to/vantrace` with the actual path to your vantrace repo.
 
 ## 3. Verify events are being captured
 
@@ -52,7 +54,7 @@ After a Claude Code session, inspect the Ledger:
 ```bash
 node -e "
 import { LedgerStore } from './packages/core/dist/index.js';
-const store = new LedgerStore(process.env.HOME + '/.glassbox/glassbox.db');
+const store = new LedgerStore(process.env.HOME + '/.vantrace/vantrace.db');
 const sessions = store.listSessions();
 console.log('Sessions:', sessions.length);
 for (const s of sessions) {
@@ -67,4 +69,4 @@ store.close();
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GLASSBOX_DB` | `~/.glassbox/glassbox.db` | Path to the SQLite database |
+| `VANTRACE_DB` | `~/.vantrace/vantrace.db` | Path to the SQLite database |

@@ -40,6 +40,7 @@ export function SessionDetail({ session, events, completions }: Props) {
           </Box>
           {events.map(e => {
             const completion = completions.get(e.id);
+            const dataWidth = Math.max(20, (process.stdout.columns ?? 80) - 50);
             return (
               <Box key={e.id}>
                 <Text>{pad(String(e.seq), 5)}</Text>
@@ -48,7 +49,7 @@ export function SessionDetail({ session, events, completions }: Props) {
                 <Text color={riskColor(e.risk_level)}>{pad(e.risk_level ?? '?', 8)}</Text>
                 <Text>{pad(revStr(e.reversible), 5)}</Text>
                 <Text color={outcomeColor(completion?.outcome)}>{pad(outcomeStr(completion?.outcome), 5)}</Text>
-                <Text color="gray">{formatActionData(e.action_data)}</Text>
+                <Text color="gray">{formatActionData(e.action_data, dataWidth)}</Text>
               </Box>
             );
           })}

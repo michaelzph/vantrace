@@ -1,18 +1,18 @@
 {
-  "name": "@glassbox/cli",
+  "name": "@vantrace/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "glassbox": "./dist/cli.js"
+    "vantrace": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsup src/cli.tsx --format esm --no-dts",
+    "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@glassbox/core": "workspace:*",
+    "@vantrace/core": "workspace:*",
     "ink": "^5.0.0",
     "react": "^18.0.0"
   },
