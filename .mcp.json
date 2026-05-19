@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vantrace": {
+      "command": "node",
+      "args": ["/Users/zhang/claude_proj/vantrace/packages/mcp-server/dist/server.js"]
+    }
+  }
+}
