@@ -15,6 +15,7 @@ export type ActionType =
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type SessionStatus = 'active' | 'completed' | 'aborted';
 export type SessionOutcome = 'success' | 'partial' | 'failed';
+export type CompletionOutcome = 'success' | 'error';
 
 // --- Typed action_data shapes ---
 
@@ -22,7 +23,7 @@ export interface FileReadData    { path: string | null }
 export interface FileWriteData   { path: string | null; operation: 'create' | 'patch' | 'replace' | null }
 export interface FileDeleteData  { path: string | null }
 export interface BashExecuteData { command: string | null }
-export interface WebSearchData   { query?: string | null; url?: string | null }
+export interface WebSearchData   { query?: string; url?: string }
 export interface McpToolCallData { server: string; tool: string; input_keys: string[] }
 export interface AgentThinkingData { phase: 'planning' | 'reasoning' | 'reflection' | null; decision: string | null; alternatives: string[]; confidence: 'high' | 'medium' | 'low' | null }
 export interface UserMessageData  { length: number }
@@ -40,8 +41,7 @@ export type ResultData =
   | BashResultData
   | FileReadResultData
   | FileWriteResultData
-  | WebSearchResultData
-  | Record<string, never>;
+  | WebSearchResultData;
 
 // --- Core interfaces ---
 
@@ -75,7 +75,7 @@ export interface Event {
 
 export interface Completion {
   event_id: string;
-  outcome: 'success' | 'error';
+  outcome: CompletionOutcome;
   error_msg: string | null;
   result_data: ResultData | null;
   created_at: string;
@@ -107,7 +107,7 @@ export interface Annotation {
 
 export interface RecordCompletionInput {
   event_id: string;
-  outcome: 'success' | 'error';
+  outcome: CompletionOutcome;
   error_msg?: string;
   result_data?: ResultData;
 }
