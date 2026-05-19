@@ -5,6 +5,8 @@ import type {
   Event,
   CreateSessionInput,
   AppendEventInput,
+  Completion,
+  RecordCompletionInput,
 } from './schema.js';
 
 const SCHEMA_SQL = `
@@ -32,6 +34,13 @@ CREATE TABLE IF NOT EXISTS events (
   parent_id     TEXT,
   policy_tags   TEXT,
   policy_result TEXT
+);
+
+CREATE TABLE IF NOT EXISTS completions (
+  event_id    TEXT PRIMARY KEY REFERENCES events(id),
+  outcome     TEXT NOT NULL,
+  error_msg   TEXT,
+  created_at  TEXT NOT NULL
 );
 `;
 
@@ -146,6 +155,53 @@ export class LedgerStore {
       .prepare(`SELECT * FROM events WHERE session_id = ? ORDER BY seq ASC`)
       .all(session_id) as Record<string, unknown>[];
     return rows.map(rowToEvent);
+  }
+
+  findLastUncompletedEvent(session_id: string, action_type: string): Event | undefined {
+    const row = this.db
+      .prepare(
+        `SELECT * FROM events
+         WHERE session_id = ? AND action_type = ?
+           AND id NOT IN (SELECT event_id FROM completions)
+         ORDER BY seq DESC LIMIT 1`
+      )
+      .get(session_id, action_type) as Record<string, unknown> | undefined;
+    return row ? rowToEvent(row) : undefined;
+  }
+
+  recordCompletion(input: RecordCompletionInput): void {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO completions (event_id, outcome, error_msg, created_at)
+         VALUES (@event_id, @outcome, @error_msg, @created_at)`
+      )
+      .run({
+        event_id: input.event_id,
+        outcome: input.outcome,
+        error_msg: input.error_msg ?? null,
+        created_at: new Date().toISOString(),
+      });
+  }
+
+  getCompletions(session_id: string): Map<string, Completion> {
+    const rows = this.db
+      .prepare(
+        `SELECT c.* FROM completions c
+         JOIN events e ON e.id = c.event_id
+         WHERE e.session_id = ?`
+      )
+      .all(session_id) as Array<Record<string, unknown>>;
+    const map = new Map<string, Completion>();
+    for (const row of rows) {
+      const c: Completion = {
+        event_id: row['event_id'] as string,
+        outcome: row['outcome'] as 'success' | 'error',
+        error_msg: (row['error_msg'] as string | null) ?? null,
+        created_at: row['created_at'] as string,
+      };
+      map.set(c.event_id, c);
+    }
+    return map;
   }
 
   close(): void {

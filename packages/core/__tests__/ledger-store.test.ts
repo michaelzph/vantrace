@@ -125,4 +125,85 @@ describe('LedgerStore', () => {
       expect(second.cwd).toBe('/a');
     });
   });
+
+  describe('completions', () => {
+    describe('findLastUncompletedEvent', () => {
+      it('returns undefined when no events exist', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const result = store.findLastUncompletedEvent(session.id, 'file_read');
+        expect(result).toBeUndefined();
+      });
+
+      it('returns the last event of matching action_type', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: { path: '/a' } });
+        const e2 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: { path: '/b' } });
+        const result = store.findLastUncompletedEvent(session.id, 'file_read');
+        expect(result?.id).toBe(e2.id);
+      });
+
+      it('skips events that already have a completion', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const e1 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: { path: '/a' } });
+        const e2 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: { path: '/b' } });
+        store.recordCompletion({ event_id: e2.id, outcome: 'success' });
+        const result = store.findLastUncompletedEvent(session.id, 'file_read');
+        expect(result?.id).toBe(e1.id);
+      });
+
+      it('returns undefined when all events are completed', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const e1 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
+        store.recordCompletion({ event_id: e1.id, outcome: 'success' });
+        expect(store.findLastUncompletedEvent(session.id, 'file_read')).toBeUndefined();
+      });
+
+      it('does not cross action_type boundaries', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_write', action_data: {} });
+        expect(store.findLastUncompletedEvent(session.id, 'file_read')).toBeUndefined();
+      });
+    });
+
+    describe('recordCompletion', () => {
+      it('stores outcome and created_at', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const e = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'bash_execute', action_data: {} });
+        store.recordCompletion({ event_id: e.id, outcome: 'error', error_msg: 'exit 1' });
+        const map = store.getCompletions(session.id);
+        const c = map.get(e.id);
+        expect(c?.outcome).toBe('error');
+        expect(c?.error_msg).toBe('exit 1');
+        expect(c?.created_at).toBeTruthy();
+      });
+
+      it('is idempotent — duplicate recordCompletion does not throw', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const e = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
+        store.recordCompletion({ event_id: e.id, outcome: 'success' });
+        expect(() => store.recordCompletion({ event_id: e.id, outcome: 'success' })).not.toThrow();
+      });
+    });
+
+    describe('getCompletions', () => {
+      it('returns empty map when no completions', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
+        const map = store.getCompletions(session.id);
+        expect(map.size).toBe(0);
+      });
+
+      it('returns map keyed by event_id for all completions in session', () => {
+        const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+        const e1 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_read', action_data: {} });
+        const e2 = store.appendEvent({ session_id: session.id, agent: 'claude-code', action_type: 'file_write', action_data: {} });
+        store.recordCompletion({ event_id: e1.id, outcome: 'success' });
+        store.recordCompletion({ event_id: e2.id, outcome: 'error', error_msg: 'permission denied' });
+        const map = store.getCompletions(session.id);
+        expect(map.size).toBe(2);
+        expect(map.get(e1.id)?.outcome).toBe('success');
+        expect(map.get(e2.id)?.error_msg).toBe('permission denied');
+      });
+    });
+  });
 });

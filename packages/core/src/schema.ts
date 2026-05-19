@@ -64,3 +64,16 @@ export interface Annotation {
   reversible: 0 | 1 | null;
   risk_level: RiskLevel;
 }
+
+export interface Completion {
+  event_id: string;
+  outcome: 'success' | 'error';
+  error_msg: string | null;
+  created_at: string;
+}
+
+export interface RecordCompletionInput {
+  event_id: string;
+  outcome: 'success' | 'error';
+  error_msg?: string;
+}
