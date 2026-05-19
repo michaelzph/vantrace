@@ -40,9 +40,20 @@ console.log(JSON.stringify(settings, null, 2));
 " > "$SETTINGS_FILE"
 
 echo "created $SETTINGS_FILE"
+
+# Link CLI globally so 'vantrace' works as a command
+if ! command -v vantrace &>/dev/null; then
+  echo ""
+  echo "linking vantrace CLI globally..."
+  (cd "$VANTRACE_DIR/packages/cli" && pnpm link --global) 2>/dev/null \
+    && echo "linked: 'vantrace' is now available as a global command" \
+    || echo "note: global link failed — run 'pnpm link --global' manually from $VANTRACE_DIR/packages/cli"
+fi
+
 echo ""
 echo "Vantrace is set up for: $PROJECT_DIR"
 echo "Database: \${VANTRACE_DB:-~/.vantrace/vantrace.db}"
 echo ""
 echo "To view captured events after a Claude Code session:"
-echo "  node $VANTRACE_DIR/packages/cli/dist/cli.js sessions"
+echo "  vantrace sessions"
+echo "  vantrace session <session-id>"

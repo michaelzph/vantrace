@@ -48,7 +48,7 @@ Run the setup script from your vantrace directory, pointing it at the project yo
 ./scripts/setup.sh /path/to/your/project
 ```
 
-This creates `.claude/settings.json` in that project with the correct hook configuration.
+This creates `.claude/settings.json` in that project with the correct hook configuration, and installs `vantrace` as a global command.
 
 **3. Use Claude Code normally**
 
@@ -58,10 +58,10 @@ Start a Claude Code session in your project. Vantrace captures events in the bac
 
 ```bash
 # List all sessions
-node packages/cli/dist/cli.js sessions
+vantrace sessions
 
 # Inspect a specific session
-node packages/cli/dist/cli.js session <session-id>
+vantrace session <session-id>
 ```
 
 ---
