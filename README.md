@@ -42,7 +42,7 @@ Each event includes: timestamp, sequence number, reversibility (`yes` / `no`), r
 **1. Clone and build**
 
 ```bash
-git clone https://github.com/your-org/vantrace.git
+git clone https://github.com/michaelzph/vantrace.git
 cd vantrace
 pnpm install
 pnpm build
