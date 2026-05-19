@@ -1,0 +1,25 @@
+{
+  "name": "@glassbox/collector-claude-code",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "glassbox-hook": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@glassbox/core": "workspace:*"
+  }
+}
