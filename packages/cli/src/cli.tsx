@@ -3,16 +3,16 @@ import { render } from 'ink';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
-import { LedgerStore } from '@glassbox/core';
+import { LedgerStore } from '@vantrace/core';
 import { SessionsList } from './sessions-list.js';
 import { SessionDetail } from './session-detail.js';
 
 const args = process.argv.slice(2);
-const dbPath = process.env['GLASSBOX_DB'] ?? join(homedir(), '.glassbox', 'glassbox.db');
+const dbPath = process.env['VANTRACE_DB'] ?? join(homedir(), '.vantrace', 'vantrace.db');
 
 if (!existsSync(dbPath)) {
-  console.error(`No Glassbox database found at: ${dbPath}`);
-  console.error('Run Claude Code with Glassbox hooks enabled first.');
+  console.error(`No Vantrace database found at: ${dbPath}`);
+  console.error('Run Claude Code with Vantrace hooks enabled first.');
   process.exit(1);
 }
 
@@ -24,8 +24,9 @@ if (cmd === 'session' && args[1]) {
   const sessionId = args[1];
   const session = store.getSession(sessionId);
   const events = store.getEvents(sessionId);
+  const completions = store.getCompletions(sessionId);
   store.close();
-  render(<SessionDetail session={session} events={events} />);
+  render(<SessionDetail session={session} events={events} completions={completions} />);
 } else if (cmd === 'sessions' || cmd === undefined) {
   const sessions = store.listSessions();
   const eventCounts = new Map<string, number>();
@@ -38,7 +39,7 @@ if (cmd === 'session' && args[1]) {
   store.close();
   console.error(`Unknown command: ${cmd}`);
   console.error('Usage:');
-  console.error('  glassbox sessions          List all sessions');
-  console.error('  glassbox session <id>      Show events for a session');
+  console.error('  vantrace sessions          List all sessions');
+  console.error('  vantrace session <id>      Show events for a session');
   process.exit(1);
 }

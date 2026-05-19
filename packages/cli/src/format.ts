@@ -42,3 +42,15 @@ export function riskColor(risk: string | null): 'red' | 'yellow' | 'green' | 'gr
     default: return 'gray';
   }
 }
+
+export function outcomeStr(outcome: 'success' | 'error' | undefined): string {
+  if (outcome === 'success') return 'ok';
+  if (outcome === 'error') return 'err';
+  return '?';
+}
+
+export function outcomeColor(outcome: 'success' | 'error' | undefined): 'green' | 'red' | 'gray' {
+  if (outcome === 'success') return 'green';
+  if (outcome === 'error') return 'red';
+  return 'gray';
+}
