@@ -8,7 +8,7 @@
 
 ## Current Focus
 
-Implementing `@glassbox/cli` — session inspection commands.
+MVP is complete. All three packages are implemented and tested. Next focus: polish and v2 features.
 
 ---
 
@@ -26,13 +26,14 @@ Implementing `@glassbox/cli` — session inspection commands.
   - [x] PreToolUse hook: capture tool name + input metadata
   - [x] PostToolUse hook: exit 0 silently (capture deferred to v2)
   - [x] Tool name → action_type mapping (Read/Write/Edit/MultiEdit/NotebookEdit/Bash/WebSearch/WebFetch/MCP)
+- [x] `@glassbox/cli` — `glassbox sessions` command
+- [x] `@glassbox/cli` — `glassbox session <id>` command
 
 ---
 
 ## In Progress
 
-- [ ] `@glassbox/cli` — `glassbox sessions` command
-- [ ] `@glassbox/cli` — `glassbox session <id>` command
+(none)
 
 ---
 
