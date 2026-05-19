@@ -2,13 +2,18 @@
 
 ## What Is This Project
 
-Vantrace is an AI Agent behavior audit framework.
+Vantrace is the behavior data layer for AI agents.
 
 **The problem it solves:** Every major agent framework (Claude Code,
 OpenClaw, Hermes, etc.) is a black box — when something goes wrong,
-there is no way to trace what happened. Vantrace captures every
-action an agent takes as structured, immutable records, so humans
-can audit, understand, and attribute behavior after the fact.
+there is no way to trace what happened. More importantly, the rich
+behavioral data agents generate is simply discarded, making it
+impossible to diagnose inefficiencies or improve agent performance
+over time.
+
+Vantrace captures every action an agent takes as structured,
+immutable records — so you can audit the past, understand the
+present, and improve the future.
 
 **Name origin:** Vantage point + Trace — see every move your AI
 agent makes, from a vantage point.
@@ -17,6 +22,11 @@ agent makes, from a vantage point.
 **First agent integration:** Claude Code (via hooks mechanism).
 
 **Tagline:** See every move your AI agent makes, from a vantage point.
+
+**Three-phase value:**
+- Audit the past    — v1: capture and review agent behavior
+- Understand the present — v1.5: diagnose patterns and inefficiencies
+- Improve the future    — v2: optimize agents using behavior data
 
 For current development status, see docs/STATUS.md.
 
@@ -38,6 +48,10 @@ action_data holds structured metadata (file paths, line deltas,
 command names) — never file contents or command output. This keeps
 the Ledger free of sensitive data and bounded in size.
 
+**Exception:** agent_thinking events store structured reasoning
+metadata (decision, alternatives, phase) because this is essential
+for future agent optimization. Still no raw prompt/completion text.
+
 **The Ledger is append-only.**
 The events table accepts only INSERT. UPDATE and DELETE are forbidden.
 This is the foundation of audit trustworthiness. To correct an event,
@@ -46,8 +60,15 @@ by ID.
 
 **Local first.**
 All data lives on the user's machine (~/.vantrace/ or .vantrace/
-inside the project). Nothing is sent to any external service,
-including the local model used for semantic annotation.
+inside the project). Nothing is sent to any external service.
+This applies to future analytics and optimization features too —
+all processing happens locally unless the user explicitly opts in.
+
+**Schema stability matters.**
+The events and sessions tables are the foundation of Vantrace's
+long-term data value. Migrations that break existing data are
+unacceptable after v1.0. Design schema fields for future use cases
+(optimization, training data export), not just current audit needs.
 
 ---
 
@@ -100,17 +121,76 @@ vantrace/
 The schema is the single source of truth. When in doubt, check
 `packages/core/src/schema.ts` before making assumptions.
 
-**events table columns:**
-`id, session_id, seq, created_at, agent, agent_ver, action_type,
-action_data (JSON), reversible (0/1/NULL), risk_level, parent_id,
-policy_tags (JSON), policy_result`
+### events table
 
-**action_type values:**
-`file_read, file_write, file_delete, bash_execute, web_search,
-mcp_tool_call, agent_thinking, user_message, agent_message`
+| Column        | Type           | Notes                                          |
+|---------------|----------------|------------------------------------------------|
+| id            | TEXT PK        | nanoid                                         |
+| session_id    | TEXT           | FK → sessions.id                              |
+| seq           | INTEGER        | Sequence within session, for ordering          |
+| created_at    | INTEGER        | Unix timestamp in milliseconds                 |
+| agent         | TEXT           | e.g. 'claude-code', 'codex'                   |
+| agent_ver     | TEXT           | Agent version string                           |
+| action_type   | TEXT           | See action_type values below                   |
+| action_data   | TEXT (JSON)    | Structured metadata, schema varies by type     |
+| reversible    | INTEGER        | 0 = irreversible, 1 = reversible, NULL = unknown |
+| risk_level    | TEXT           | 'low' \| 'medium' \| 'high' \| NULL           |
+| parent_ids    | TEXT (JSON)    | Array of parent event IDs (causal chain)       |
+| policy_tags   | TEXT (JSON)    | Array of matched policy names                  |
+| policy_result | TEXT           | 'pass' \| 'warn' \| 'block' \| NULL           |
 
-**sessions table columns:**
-`id, started_at, ended_at, agent, task, cwd, status`
+**Note:** `parent_ids` is a JSON array (not a single `parent_id`)
+to support multi-causal relationships where multiple prior events
+together trigger a decision.
+
+### action_type values and action_data shapes
+
+```typescript
+file_read:      { path: string, size_bytes: number }
+
+file_write:     { path: string,
+                  operation: 'create' | 'replace' | 'patch',
+                  lines_added: number, lines_removed: number }
+
+file_delete:    { path: string }
+
+bash_execute:   { command: string, exit_code: number,
+                  stdout_lines: number, stderr_lines: number,
+                  duration_ms: number }
+
+web_search:     { query: string, results_count: number }
+
+mcp_tool_call:  { server: string, tool: string,
+                  input_keys: string[],
+                  success: boolean }
+
+agent_thinking: { phase: 'planning' | 'reasoning' | 'reflection',
+                  decision: string,
+                  alternatives: string[],
+                  confidence: 'high' | 'medium' | 'low' | null }
+
+user_message:   { length: number }
+agent_message:  { length: number }
+correction:     { target_event_id: string, reason: string }
+```
+
+### sessions table
+
+| Column      | Type    | Notes                                              |
+|-------------|---------|----------------------------------------------------|
+| id          | TEXT PK | nanoid                                             |
+| started_at  | INTEGER | Unix timestamp in milliseconds                     |
+| ended_at    | INTEGER | NULL if session still active                       |
+| agent       | TEXT    | e.g. 'claude-code'                                |
+| task        | TEXT    | Description extracted from first user message      |
+| cwd         | TEXT    | Working directory                                  |
+| status      | TEXT    | 'active' \| 'completed' \| 'aborted'              |
+| outcome     | TEXT    | 'success' \| 'partial' \| 'failed' \| NULL        |
+| user_rating | INTEGER | 1–5, NULL if not rated. Explicit user feedback.    |
+
+**outcome** and **user_rating** are essential for future agent
+optimization (implicit and explicit feedback signals). Capture
+them from day one even if v1 does not surface them in the UI.
 
 ---
 
@@ -148,3 +228,6 @@ mcp_tool_call, agent_thinking, user_message, agent_message`
    raise it as a question rather than working around it silently.
 4. For architectural decisions that have already been made, see
    `docs/decisions/`.
+5. When in doubt about schema changes: prefer adding nullable columns
+   over restructuring existing ones. Schema stability is a hard
+   requirement after v1.0.
