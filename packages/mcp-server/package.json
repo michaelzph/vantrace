@@ -14,6 +14,6 @@
   "dependencies": {
     "@vantrace/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^3.25.0"
+    "zod": "^4.4.3"
   }
 }
