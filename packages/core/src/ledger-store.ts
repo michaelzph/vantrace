@@ -102,7 +102,7 @@ export class LedgerStore {
 
   listSessions(): Session[] {
     const rows = this.db
-      .prepare(`SELECT * FROM sessions ORDER BY started_at DESC`)
+      .prepare(`SELECT * FROM sessions ORDER BY started_at DESC, rowid DESC`)
       .all() as Record<string, unknown>[];
     return rows.map(rowToSession);
   }
