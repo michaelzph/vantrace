@@ -15,8 +15,8 @@ export function mapTool(
       action_type: 'mcp_tool_call',
       action_data: {
         tool: tool_name,
-        server: parts[1] ?? 'unknown',
-        operation: parts[2] ?? 'unknown',
+        server: parts[1] || 'unknown',
+        operation: parts[2] || 'unknown',
       },
     };
   }
