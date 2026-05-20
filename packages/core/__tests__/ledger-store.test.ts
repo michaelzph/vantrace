@@ -126,6 +126,21 @@ describe('LedgerStore', () => {
     });
   });
 
+  it('session has outcome and user_rating fields', () => {
+    const store = new LedgerStore(':memory:');
+    const session = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+    expect(session.outcome).toBeNull();
+    expect(session.user_rating).toBeNull();
+  });
+
+  it('appendEvent accepts parent_ids array', () => {
+    const store = new LedgerStore(':memory:');
+    const s = store.createSession({ agent: 'claude-code', cwd: '/tmp' });
+    const e1 = store.appendEvent({ session_id: s.id, agent: 'claude-code', action_type: 'file_read', action_data: { path: '/tmp/a' } });
+    const e2 = store.appendEvent({ session_id: s.id, agent: 'claude-code', action_type: 'file_write', action_data: { path: '/tmp/a' }, parent_ids: [e1.id] });
+    expect(e2.parent_ids).toEqual([e1.id]);
+  });
+
   describe('completions', () => {
     describe('findLastUncompletedEvent', () => {
       it('returns undefined when no events exist', () => {

@@ -8,28 +8,28 @@ describe('mapTool', () => {
     expect(r.action_data).toEqual({ path: '/tmp/foo.ts' });
   });
 
-  it('Write → file_write with path', () => {
+  it('Write → file_write with path and operation=create', () => {
     const r = mapTool('Write', { file_path: '/tmp/foo.ts' });
     expect(r.action_type).toBe('file_write');
-    expect(r.action_data).toEqual({ path: '/tmp/foo.ts' });
+    expect(r.action_data).toEqual({ path: '/tmp/foo.ts', operation: 'create' });
   });
 
-  it('Edit → file_write with path', () => {
+  it('Edit → file_write with path and operation=patch', () => {
     const r = mapTool('Edit', { file_path: '/tmp/foo.ts' });
     expect(r.action_type).toBe('file_write');
-    expect(r.action_data).toEqual({ path: '/tmp/foo.ts' });
+    expect(r.action_data).toEqual({ path: '/tmp/foo.ts', operation: 'patch' });
   });
 
-  it('MultiEdit → file_write with path', () => {
+  it('MultiEdit → file_write with path and operation=patch', () => {
     const r = mapTool('MultiEdit', { file_path: '/tmp/foo.ts' });
     expect(r.action_type).toBe('file_write');
-    expect(r.action_data).toEqual({ path: '/tmp/foo.ts' });
+    expect(r.action_data).toEqual({ path: '/tmp/foo.ts', operation: 'patch' });
   });
 
-  it('NotebookEdit → file_write with path from notebook_path', () => {
+  it('NotebookEdit → file_write with path from notebook_path and operation=patch', () => {
     const r = mapTool('NotebookEdit', { notebook_path: '/tmp/nb.ipynb' });
     expect(r.action_type).toBe('file_write');
-    expect(r.action_data).toEqual({ path: '/tmp/nb.ipynb' });
+    expect(r.action_data).toEqual({ path: '/tmp/nb.ipynb', operation: 'patch' });
   });
 
   it('Bash → bash_execute with command', () => {
@@ -56,10 +56,10 @@ describe('mapTool', () => {
     expect(r.action_data).toEqual({ url: 'https://example.com' });
   });
 
-  it('Think → agent_thinking with empty data', () => {
+  it('Think → agent_thinking with structured fields', () => {
     const r = mapTool('Think', {});
     expect(r.action_type).toBe('agent_thinking');
-    expect(r.action_data).toEqual({});
+    expect(r.action_data).toEqual({ phase: null, decision: null, alternatives: [], confidence: null });
   });
 
   it('ThinkingTool → agent_thinking', () => {
@@ -67,16 +67,39 @@ describe('mapTool', () => {
     expect(r.action_type).toBe('agent_thinking');
   });
 
-  it('mcp__ prefix → mcp_tool_call with server and operation', () => {
-    const r = mapTool('mcp__my_server__do_thing', {});
-    expect(r.action_type).toBe('mcp_tool_call');
-    expect(r.action_data).toEqual({ tool: 'mcp__my_server__do_thing', server: 'my_server', operation: 'do_thing' });
+  it('Write → file_write with operation=create', () => {
+    const r = mapTool('Write', { file_path: '/tmp/new.ts' });
+    expect(r.action_data['operation']).toBe('create');
   });
 
-  it('unknown tool → mcp_tool_call with tool name', () => {
+  it('Edit → file_write with operation=patch', () => {
+    const r = mapTool('Edit', { file_path: '/tmp/foo.ts' });
+    expect(r.action_data['operation']).toBe('patch');
+  });
+
+  it('MultiEdit → file_write with operation=patch', () => {
+    const r = mapTool('MultiEdit', { file_path: '/tmp/foo.ts' });
+    expect(r.action_data['operation']).toBe('patch');
+  });
+
+  it('mcp__ → mcp_tool_call with input_keys', () => {
+    const r = mapTool('mcp__my_server__do_thing', { foo: 1, bar: 2 });
+    expect(r.action_data['input_keys']).toEqual(['foo', 'bar']);
+    expect(r.action_data['server']).toBe('my_server');
+    expect(r.action_data['tool']).toBe('mcp__my_server__do_thing');
+    expect(r.action_data).not.toHaveProperty('operation');
+  });
+
+  it('mcp__ prefix → mcp_tool_call with server and input_keys', () => {
+    const r = mapTool('mcp__my_server__do_thing', {});
+    expect(r.action_type).toBe('mcp_tool_call');
+    expect(r.action_data).toEqual({ tool: 'mcp__my_server__do_thing', server: 'my_server', input_keys: [] });
+  });
+
+  it('unknown tool → mcp_tool_call with tool name, server, and input_keys', () => {
     const r = mapTool('SomeFutureTool', { whatever: 'data' });
     expect(r.action_type).toBe('mcp_tool_call');
-    expect(r.action_data).toEqual({ tool: 'SomeFutureTool' });
+    expect(r.action_data).toEqual({ tool: 'SomeFutureTool', server: 'unknown', input_keys: ['whatever'] });
   });
 
   it('missing file_path → path is null', () => {

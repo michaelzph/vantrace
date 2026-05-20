@@ -2,7 +2,7 @@
 
 > This file is updated at the end of every development session.
 > It is the source of truth for current progress and next steps.
-> Last updated: 2026-05-19
+> Last updated: 2026-05-20
 
 ---
 
@@ -24,10 +24,11 @@ phases, not just the current one.
 
 ## Current Focus
 
-v1 infrastructure is complete and running in production (this repo
-uses it). Next: close the schema gaps between current implementation
-and the CLAUDE.md spec, so accumulated data is ready for v1.5
-analytics from day one.
+Schema gaps are closed. The implementation now matches the CLAUDE.md spec
+and accumulated data is ready for v1.5 analytics.
+
+Next: `vantrace audit <id>` CLI command — a human-readable session summary
+report that presents what an agent did in a single session.
 
 ---
 
@@ -48,40 +49,22 @@ analytics from day one.
 - [x] MCP server wired into Claude Code project settings
 - [x] README, LICENSE (MIT), .gitignore, scripts/setup.sh
 - [x] Published to GitHub (michaelzph/vantrace), topics set
+- [x] Schema gaps closed — `parent_ids` array, `session.outcome/user_rating`, `completions.result_data`
+- [x] collector: `file_write` operation field (`create`/`patch`), `mcp_tool_call` input_keys
+- [x] collector: PostToolUse extracts `stdout_lines`, `size_bytes`, `exit_code`, `results_count` into result_data
 
 ---
 
-## Schema Gaps — In Progress
+## Up Next (immediate)
 
-Current implementation diverges from the CLAUDE.md schema spec.
-These must be closed before v1.5 analytics are meaningful.
-
-### core/schema.ts + ledger-store.ts
-
-- [ ] `parent_id` (TEXT) → `parent_ids` (JSON array) — supports multi-causal chains
-- [ ] `sessions` table: add `outcome` (`success | partial | failed | NULL`)
-- [ ] `sessions` table: add `user_rating` (INTEGER 1–5, NULL)
-- [ ] `sessions` table: add `task` (TEXT, from first user message)
-
-### collector-claude-code action_data shapes
-
-- [ ] `file_read`: add `size_bytes`
-- [ ] `file_write`: add `operation` (`create | replace | patch`), `lines_added`, `lines_removed`
-- [ ] `bash_execute`: add `exit_code`, `stdout_lines`, `stderr_lines`, `duration_ms`
-- [ ] `web_search`: add `results_count`
-- [ ] `mcp_tool_call`: replace current shape with `{ server, tool, input_keys[], success }`
-
-### new action types
-
-- [ ] `agent_thinking`: structured reasoning capture
-  `{ phase, decision, alternatives[], confidence }`
-  (depends on Claude Code exposing thinking blocks in hooks)
-
----
-
-## Up Next (after schema gaps)
+## Up Next (immediate)
 
 - [ ] `vantrace audit <id>` CLI command — human-readable session summary report
+- [ ] `sessions.task` field — capture from first user message (needs hook or startup event)
+- [ ] `agent_thinking` action type — blocked on Claude Code exposing thinking blocks in hooks
+
+## Up Next (after above)
+
 - [ ] v1.5: `vantrace insights` command — session stats, inefficiency detection
 
 ---

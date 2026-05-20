@@ -3,9 +3,10 @@ import { nanoid } from 'nanoid';
 import type {
   Session,
   Event,
+  Completion,
+  ResultData,
   CreateSessionInput,
   AppendEventInput,
-  Completion,
   RecordCompletionInput,
 } from './schema.js';
 
@@ -17,7 +18,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   agent       TEXT NOT NULL,
   task        TEXT,
   cwd         TEXT NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'active'
+  status      TEXT NOT NULL DEFAULT 'active',
+  outcome     TEXT,
+  user_rating INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -32,6 +35,7 @@ CREATE TABLE IF NOT EXISTS events (
   reversible    INTEGER,
   risk_level    TEXT,
   parent_id     TEXT,
+  parent_ids    TEXT,
   policy_tags   TEXT,
   policy_result TEXT
 );
@@ -40,6 +44,7 @@ CREATE TABLE IF NOT EXISTS completions (
   event_id    TEXT PRIMARY KEY REFERENCES events(id),
   outcome     TEXT NOT NULL CHECK (outcome IN ('success', 'error')),
   error_msg   TEXT,
+  result_data TEXT,
   created_at  TEXT NOT NULL
 );
 `;
@@ -52,6 +57,7 @@ export class LedgerStore {
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
     this.db.exec(SCHEMA_SQL);
+    runMigrations(this.db);
   }
 
   createSession(input: CreateSessionInput): Session {
@@ -63,11 +69,13 @@ export class LedgerStore {
       task: input.task ?? null,
       cwd: input.cwd,
       status: 'active',
+      outcome: null,
+      user_rating: null,
     };
     this.db
       .prepare(
-        `INSERT INTO sessions (id, started_at, ended_at, agent, task, cwd, status)
-         VALUES (@id, @started_at, @ended_at, @agent, @task, @cwd, @status)`
+        `INSERT INTO sessions (id, started_at, ended_at, agent, task, cwd, status, outcome, user_rating)
+         VALUES (@id, @started_at, @ended_at, @agent, @task, @cwd, @status, @outcome, @user_rating)`
       )
       .run(session);
     return session;
@@ -99,11 +107,13 @@ export class LedgerStore {
       task: input.task ?? null,
       cwd: input.cwd,
       status: 'active',
+      outcome: null,
+      user_rating: null,
     };
     this.db
       .prepare(
-        `INSERT OR IGNORE INTO sessions (id, started_at, ended_at, agent, task, cwd, status)
-         VALUES (@id, @started_at, @ended_at, @agent, @task, @cwd, @status)`
+        `INSERT OR IGNORE INTO sessions (id, started_at, ended_at, agent, task, cwd, status, outcome, user_rating)
+         VALUES (@id, @started_at, @ended_at, @agent, @task, @cwd, @status, @outcome, @user_rating)`
       )
       .run(session);
     return this.getSession(id)!;
@@ -129,7 +139,7 @@ export class LedgerStore {
       action_data: input.action_data,
       reversible: input.reversible ?? null,
       risk_level: input.risk_level ?? null,
-      parent_id: input.parent_id ?? null,
+      parent_ids: input.parent_ids ?? null,
       policy_tags: input.policy_tags ?? null,
       policy_result: input.policy_result ?? null,
     };
@@ -137,14 +147,15 @@ export class LedgerStore {
       .prepare(
         `INSERT INTO events
            (id, session_id, seq, created_at, agent, agent_ver, action_type,
-            action_data, reversible, risk_level, parent_id, policy_tags, policy_result)
+            action_data, reversible, risk_level, parent_ids, policy_tags, policy_result)
          VALUES
            (@id, @session_id, @seq, @created_at, @agent, @agent_ver, @action_type,
-            @action_data, @reversible, @risk_level, @parent_id, @policy_tags, @policy_result)`
+            @action_data, @reversible, @risk_level, @parent_ids, @policy_tags, @policy_result)`
       )
       .run({
         ...event,
         action_data: JSON.stringify(event.action_data),
+        parent_ids: event.parent_ids ? JSON.stringify(event.parent_ids) : null,
         policy_tags: event.policy_tags ? JSON.stringify(event.policy_tags) : null,
       });
     return event;
@@ -172,13 +183,14 @@ export class LedgerStore {
   recordCompletion(input: RecordCompletionInput): void {
     this.db
       .prepare(
-        `INSERT OR IGNORE INTO completions (event_id, outcome, error_msg, created_at)
-         VALUES (@event_id, @outcome, @error_msg, @created_at)`
+        `INSERT OR IGNORE INTO completions (event_id, outcome, error_msg, result_data, created_at)
+         VALUES (@event_id, @outcome, @error_msg, @result_data, @created_at)`
       )
       .run({
         event_id: input.event_id,
         outcome: input.outcome,
         error_msg: input.error_msg ?? null,
+        result_data: input.result_data ? JSON.stringify(input.result_data) : null,
         created_at: new Date().toISOString(),
       });
   }
@@ -193,10 +205,15 @@ export class LedgerStore {
       .all(session_id) as Array<Record<string, unknown>>;
     const map = new Map<string, Completion>();
     for (const row of rows) {
+      let result_data: ResultData | null = null;
+      if (row['result_data']) {
+        try { result_data = JSON.parse(row['result_data'] as string); } catch { /* empty */ }
+      }
       const c: Completion = {
         event_id: row['event_id'] as string,
-        outcome: row['outcome'] as 'success' | 'error',
+        outcome: row['outcome'] as Completion['outcome'],
         error_msg: (row['error_msg'] as string | null) ?? null,
+        result_data,
         created_at: row['created_at'] as string,
       };
       map.set(c.event_id, c);
@@ -216,6 +233,20 @@ function nextSeq(db: Database.Database, session_id: string): number {
   return row.max_seq + 1;
 }
 
+function addColumnIfMissing(db: Database.Database, table: string, column: string, definition: string): void {
+  const cols = (db.pragma(`table_info(${table})`) as Array<{ name: string }>).map(r => r.name);
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+function runMigrations(db: Database.Database): void {
+  addColumnIfMissing(db, 'sessions',    'outcome',     'TEXT');
+  addColumnIfMissing(db, 'sessions',    'user_rating', 'INTEGER');
+  addColumnIfMissing(db, 'events',      'parent_ids',  'TEXT');
+  addColumnIfMissing(db, 'completions', 'result_data', 'TEXT');
+}
+
 function rowToSession(row: Record<string, unknown>): Session {
   return {
     id: row['id'] as string,
@@ -225,6 +256,8 @@ function rowToSession(row: Record<string, unknown>): Session {
     task: (row['task'] as string | null) ?? null,
     cwd: row['cwd'] as string,
     status: row['status'] as Session['status'],
+    outcome: (row['outcome'] as Session['outcome']) ?? null,
+    user_rating: (row['user_rating'] as number | null) ?? null,
   };
 }
 
@@ -245,6 +278,15 @@ function rowToEvent(row: Record<string, unknown>): Event {
     }
   }
 
+  let parent_ids: string[] | null = null;
+  if (row['parent_ids']) {
+    try {
+      parent_ids = JSON.parse(row['parent_ids'] as string);
+    } catch {
+      // Fallback to null if JSON parse fails
+    }
+  }
+
   return {
     id: row['id'] as string,
     session_id: row['session_id'] as string,
@@ -256,7 +298,7 @@ function rowToEvent(row: Record<string, unknown>): Event {
     action_data,
     reversible: (row['reversible'] as 0 | 1 | null) ?? null,
     risk_level: (row['risk_level'] as Event['risk_level']) ?? null,
-    parent_id: (row['parent_id'] as string | null) ?? null,
+    parent_ids,
     policy_tags,
     policy_result: (row['policy_result'] as string | null) ?? null,
   };
